@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="el">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Είσοδος - MMFI 251 ΓΝΑ</title>
+    <link rel="icon" href="{{ url_for('static', filename='251gna_logo.png') }}">
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+</head>
+<body class="login-page">
+    <div class="login-card">
+        <div class="card shadow-sm">
+            <div class="card-body p-4 p-md-5">
+                <div class="text-center mb-4">
+                    <img src="{{ url_for('static', filename='251gna_logo.png') }}" class="login-logo mb-3" alt="251 ΓΝΑ">
+                    <h1 class="h4 fw-bold mb-1">MMFI 251 ΓΝΑ</h1>
+                    <div class="compact-text">Οικονομική τακτοποίηση χειρουργικών επεμβάσεων</div>
+                </div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show border-0" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Κλείσιμο"></button>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                <form method="post" action="{{ url_for('login') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="username">Όνομα χρήστη</label>
+                        <input class="form-control" id="username" name="username" autocomplete="username" required autofocus>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold" for="password">Κωδικός</label>
+                        <input class="form-control" id="password" name="password" type="password" autocomplete="current-password" required>
+                    </div>
+                    <button class="btn btn-primary w-100" type="submit">Είσοδος</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>

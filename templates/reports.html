@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Αναφορές - MMFI{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3 mb-4">
+    <div>
+        <h1 class="page-title">Αναφορές</h1>
+        <p class="page-kicker">Εξαγωγή κατάστασης οικονομικής τακτοποίησης.</p>
+    </div>
+    <a class="btn btn-success" href="{{ url_for('export_report_xlsx', **request.args) }}">Excel</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form class="row g-3 align-items-end" method="get">
+            <div class="col-lg-3">
+                <label class="form-label fw-semibold">Αναζήτηση</label>
+                <input class="form-control" name="q" value="{{ request.args.get('q', '') }}">
+            </div>
+            <div class="col-sm-6 col-lg-2">
+                <label class="form-label fw-semibold">Κατάσταση</label>
+                <select class="form-select" name="status">
+                    <option value="">Όλες</option>
+                    {% for value, label in case_status_labels.items() %}
+                    <option value="{{ value }}" {% if request.args.get('status') == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <label class="form-label fw-semibold">Τρέχων σταθμός</label>
+                <select class="form-select" name="station">
+                    <option value="">Όλοι</option>
+                    {% for station in workstations %}
+                    <option value="{{ station.code }}" {% if request.args.get('station') == station.code %}selected{% endif %}>{{ station.short }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-6 col-lg-2">
+                <label class="form-label fw-semibold">Από</label>
+                <input class="form-control" name="date_from" type="date" value="{{ request.args.get('date_from', '') }}">
+            </div>
+            <div class="col-sm-6 col-lg-2">
+                <label class="form-label fw-semibold">Έως</label>
+                <input class="form-control" name="date_to" type="date" value="{{ request.args.get('date_to', '') }}">
+            </div>
+            <div class="col-12 d-flex gap-2">
+                <button class="btn btn-outline-primary" type="submit">Εφαρμογή</button>
+                <a class="btn btn-outline-secondary" href="{{ url_for('reports') }}">Καθαρισμός</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Αποτελέσματα</span>
+        <span class="badge badge-soft">{{ cases|length }}</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>Κωδικός</th>
+                        <th>Ημ/νία</th>
+                        <th>Ιατρός</th>
+                        <th>Τρέχων σταθμός</th>
+                        <th>Ημέρες</th>
+                        <th>Πρόοδος</th>
+                        <th>Κατάσταση</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for case in cases %}
+                    {% set active = current_step_for_case(case) %}
+                    <tr>
+                        <td><a class="case-link" href="{{ url_for('case_detail', case_id=case.id) }}">{{ case.reference_code }}</a></td>
+                        <td>{{ case.surgery_date|date_el }}</td>
+                        <td>{{ case.responsible_doctor }}</td>
+                        <td>{{ active.station_name if active else '-' }}</td>
+                        <td>{% if active %}{{ current_step_age_days(case) }}{% else %}-{% endif %}</td>
+                        <td>{{ progress_for_case(case) }}%</td>
+                        <td>
+                            <span class="badge {% if case.status == 'completed' %}badge-completed{% elif case.status == 'cancelled' %}badge-cancelled{% else %}badge-open{% endif %}">
+                                {{ case_status_labels.get(case.status, case.status) }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="empty-state">Δεν βρέθηκαν αποτελέσματα.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

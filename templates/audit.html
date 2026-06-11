@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Audit - MMFI{% endblock %}
+{% block content %}
+<div class="mb-4">
+    <h1 class="page-title">Audit log</h1>
+    <p class="page-kicker">Τελευταίες καταγεγραμμένες ενέργειες.</p>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>Χρόνος</th>
+                        <th>Χρήστης</th>
+                        <th>Ενέργεια</th>
+                        <th>Στόχος</th>
+                        <th>Λεπτομέρειες</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td class="text-nowrap">{{ log.timestamp|datetime_el }}</td>
+                        <td>{{ log.username or '-' }}</td>
+                        <td><span class="badge badge-soft">{{ log.action }}</span></td>
+                        <td>{{ log.target or '-' }}</td>
+                        <td>{{ log.details or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="empty-state">Δεν υπάρχουν εγγραφές.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

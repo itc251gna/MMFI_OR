@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Backup - MMFI{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3 mb-4">
+    <div>
+        <h1 class="page-title">Backup</h1>
+        <p class="page-kicker">Κρυπτογραφημένα αντίγραφα βάσης και συνημμένων.</p>
+    </div>
+    <form method="post" action="{{ url_for('create_backup_route') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-success" type="submit">Δημιουργία backup</button>
+    </form>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card metric h-100">
+            <div class="card-body">
+                <div class="metric-label">Retention</div>
+                <div class="metric-value">{{ retention_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card metric metric-teal h-100">
+            <div class="card-body">
+                <div class="metric-label">Database backup</div>
+                <div class="metric-value">{% if include_database %}ON{% else %}OFF{% endif %}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card metric metric-green h-100">
+            <div class="card-body">
+                <div class="metric-label">Εγγραφές</div>
+                <div class="metric-value">{{ backups|length }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>Ημερομηνία</th>
+                        <th>Τύπος</th>
+                        <th>Status</th>
+                        <th>Χρήστης</th>
+                        <th>Μέγεθος</th>
+                        <th>SHA-256</th>
+                        <th>Έλεγχος</th>
+                        <th class="text-end">Ενέργειες</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for backup in backups %}
+                    <tr>
+                        <td class="text-nowrap">{{ backup.created_at|datetime_el }}</td>
+                        <td>{{ backup.backup_type }}</td>
+                        <td>
+                            {% if backup.status == 'VERIFIED' %}
+                            <span class="badge badge-completed">VERIFIED</span>
+                            {% elif backup.status == 'CREATED' %}
+                            <span class="badge badge-open">CREATED</span>
+                            {% elif backup.status == 'PRUNED' %}
+                            <span class="badge badge-cancelled">PRUNED</span>
+                            {% elif 'FAILED' in backup.status %}
+                            <span class="badge text-bg-danger">{{ backup.status }}</span>
+                            {% else %}
+                            <span class="badge badge-soft">{{ backup.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="fw-semibold">{{ backup.created_by or 'System' }}</div>
+                            <div class="compact-text">{{ backup.auth_method or '-' }}</div>
+                        </td>
+                        <td>{{ backup.size_bytes|filesize }}</td>
+                        <td>{% if backup.sha256 %}<code>{{ backup.sha256[:14] }}...</code>{% else %}-{% endif %}</td>
+                        <td>
+                            <div>{{ backup.verified_at|datetime_el if backup.verified_at else '-' }}</div>
+                            <div class="compact-text">{{ backup.verify_message or '' }}</div>
+                        </td>
+                        <td class="text-end">
+                            <div class="d-flex gap-2 justify-content-end">
+                                <form method="post" action="{{ url_for('verify_backup_route', backup_id=backup.id) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="btn btn-outline-primary btn-sm" type="submit">Verify</button>
+                                </form>
+                                {% if backup.status != 'PRUNED' %}
+                                <a class="btn btn-outline-success btn-sm" href="{{ url_for('download_backup_route', backup_id=backup.id) }}">Download</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="empty-state">Δεν υπάρχει backup.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

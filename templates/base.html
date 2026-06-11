@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="el">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}MMFI 251 ΓΝΑ{% endblock %}</title>
+    <link rel="icon" href="{{ url_for('static', filename='251gna_logo.png') }}">
+    <link href="{{ url_for('static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+</head>
+<body>
+<div class="app-shell">
+    <header class="topbar">
+        <nav class="container-fluid px-3 px-lg-4 py-2">
+            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                <a href="{{ url_for('index') }}" class="d-flex align-items-center gap-3 text-decoration-none">
+                    <img src="{{ url_for('static', filename='251gna_logo.png') }}" class="brand-logo" alt="251 ΓΝΑ">
+                    <span>
+                        <span class="brand-title d-block">Παρακολούθηση Οικονομικής Τακτοποίησης Χειρουργείων</span>
+                        <span class="brand-subtitle d-block">251 ΓΝΑ / ΔΟΥ / Τμήμα Προμηθειών</span>
+                    </span>
+                </a>
+                {% if current_user.is_authenticated %}
+                <div class="d-flex flex-column flex-md-row align-items-md-center gap-2">
+                    <div class="d-flex flex-wrap gap-1">
+                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Πίνακας</a>
+                        <a class="nav-link {% if request.endpoint in ['cases', 'case_detail', 'create_case', 'edit_case'] %}active{% endif %}" href="{{ url_for('cases') }}">Υποθέσεις</a>
+                        <a class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}" href="{{ url_for('reports') }}">Αναφορές</a>
+                        <a class="nav-link {% if request.endpoint == 'workflow' %}active{% endif %}" href="{{ url_for('workflow') }}">Ροή</a>
+                        {% if is_admin_user() %}
+                        <a class="nav-link {% if request.endpoint == 'manage_users' %}active{% endif %}" href="{{ url_for('manage_users') }}">Χρήστες</a>
+                        <a class="nav-link {% if request.endpoint == 'manage_backups' %}active{% endif %}" href="{{ url_for('manage_backups') }}">Backup</a>
+                        <a class="nav-link {% if request.endpoint == 'audit' %}active{% endif %}" href="{{ url_for('audit') }}">Audit</a>
+                        {% endif %}
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            {{ current_user.username }}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><span class="dropdown-item-text compact-text">{{ current_user.auth_method|default('local')|upper }}</span></li>
+                            {% if is_admin_user() %}
+                            <li><span class="dropdown-item-text"><span class="badge text-bg-danger">Διαχειριστής</span></span></li>
+                            {% endif %}
+                            {% if current_user.auth_method|default('local') != 'sso' %}
+                            <li><a class="dropdown-item" href="{{ url_for('change_password') }}">Αλλαγή κωδικού</a></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">Έξοδος</a></li>
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </nav>
+    </header>
+
+    <main class="container-fluid px-3 px-lg-4 page-wrap">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-3">
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm border-0" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Κλείσιμο"></button>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+</div>
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

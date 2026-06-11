@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{% if case %}Επεξεργασία{% else %}Νέα Υπόθεση{% endif %} - MMFI{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3 mb-4">
+    <div>
+        <h1 class="page-title">{% if case %}Επεξεργασία υπόθεσης{% else %}Νέα υπόθεση{% endif %}</h1>
+        <p class="page-kicker">{% if case %}{{ case.reference_code }}{% else %}Δημιουργία καρτέλας χειρουργείου και αυτόματη παραγωγή των 13 βημάτων.{% endif %}</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{% if case %}{{ url_for('case_detail', case_id=case.id) }}{% else %}{{ url_for('cases') }}{% endif %}">Επιστροφή</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold" for="surgery_date">Ημερομηνία χειρουργείου</label>
+                    <input class="form-control" id="surgery_date" name="surgery_date" type="date" required value="{{ case.surgery_date.strftime('%Y-%m-%d') if case else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold" for="priority">Προτεραιότητα</label>
+                    <select class="form-select" id="priority" name="priority">
+                        {% set priority = case.priority if case else 'normal' %}
+                        <option value="normal" {% if priority == 'normal' %}selected{% endif %}>Κανονική</option>
+                        <option value="high" {% if priority == 'high' %}selected{% endif %}>Υψηλή</option>
+                        <option value="urgent" {% if priority == 'urgent' %}selected{% endif %}>Άμεση</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold" for="responsible_doctor">Υπεύθυνος ιατρός</label>
+                    <input class="form-control" id="responsible_doctor" name="responsible_doctor" required value="{{ case.responsible_doctor if case else '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold" for="supplier">Προμηθευτής</label>
+                    <input class="form-control" id="supplier" name="supplier" value="{{ case.supplier if case else '' }}">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold" for="internal_reference">Εσωτερική αναφορά</label>
+                    <input class="form-control" id="internal_reference" name="internal_reference" value="{{ case.internal_reference if case else '' }}">
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold" for="surgery_description">Περιγραφή χειρουργείου</label>
+                    <input class="form-control" id="surgery_description" name="surgery_description" required value="{{ case.surgery_description if case else '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold" for="notes">Σημειώσεις</label>
+                    <textarea class="form-control" id="notes" name="notes" rows="4">{{ case.notes if case else '' }}</textarea>
+                </div>
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button class="btn btn-primary" type="submit">Αποθήκευση</button>
+                <a class="btn btn-outline-secondary" href="{% if case %}{{ url_for('case_detail', case_id=case.id) }}{% else %}{{ url_for('cases') }}{% endif %}">Άκυρο</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

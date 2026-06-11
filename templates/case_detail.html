@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% block title %}{{ case.reference_code }} - MMFI{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-xl-row align-items-xl-end justify-content-between gap-3 mb-4">
+    <div>
+        <h1 class="page-title">{{ case.reference_code }}</h1>
+        <p class="page-kicker">{{ case.surgery_date|date_el }} · {{ case.responsible_doctor }}{% if case.supplier %} · {{ case.supplier }}{% endif %}</p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-secondary" href="{{ url_for('cases') }}">Υποθέσεις</a>
+        <a class="btn btn-outline-primary" href="{{ url_for('edit_case', case_id=case.id) }}">Επεξεργασία</a>
+        {% if is_admin_user() and case.status != 'cancelled' %}
+        <button class="btn btn-outline-danger" type="button" data-bs-toggle="modal" data-bs-target="#cancelCaseModal">Ακύρωση</button>
+        {% elif is_admin_user() and case.status == 'cancelled' %}
+        <form method="post" action="{{ url_for('reopen_case', case_id=case.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-success" type="submit">Επαναφορά</button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-xl-8">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Στοιχεία χειρουργείου</span>
+                <span class="badge {% if case.status == 'completed' %}badge-completed{% elif case.status == 'cancelled' %}badge-cancelled{% else %}badge-open{% endif %}">
+                    {{ case_status_labels.get(case.status, case.status) }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-lg-8">
+                        <div class="compact-text">Περιγραφή</div>
+                        <div class="fw-semibold">{{ case.surgery_description }}</div>
+                    </div>
+                    <div class="col-sm-6 col-lg-4">
+                        <div class="compact-text">Προτεραιότητα</div>
+                        <div class="fw-semibold">
+                            {% if case.priority == 'urgent' %}Άμεση{% elif case.priority == 'high' %}Υψηλή{% else %}Κανονική{% endif %}
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-lg-4">
+                        <div class="compact-text">Εσωτερική αναφορά</div>
+                        <div class="fw-semibold">{{ case.internal_reference or '-' }}</div>
+                    </div>
+                    <div class="col-sm-6 col-lg-4">
+                        <div class="compact-text">Δημιουργός</div>
+                        <div class="fw-semibold">{{ case.created_by or '-' }}</div>
+                    </div>
+                    <div class="col-sm-6 col-lg-4">
+                        <div class="compact-text">Δημιουργήθηκε</div>
+                        <div class="fw-semibold">{{ case.created_at|datetime_el }}</div>
+                    </div>
+                    {% if case.notes %}
+                    <div class="col-12">
+                        <div class="compact-text">Σημειώσεις</div>
+                        <div>{{ case.notes }}</div>
+                    </div>
+                    {% endif %}
+                    {% if case.status == 'cancelled' %}
+                    <div class="col-12">
+                        <div class="alert alert-warning mb-0">
+                            Ακυρώθηκε από {{ case.cancelled_by or '-' }} στις {{ case.cancelled_at|datetime_el }}.
+                            {% if case.cancellation_reason %}<div>{{ case.cancellation_reason }}</div>{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="card h-100">
+            <div class="card-header">Τρέχουσα εικόνα</div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="compact-text">Πρόοδος</span>
+                    <strong>{{ progress }}%</strong>
+                </div>
+                <div class="progress mb-3"><div class="progress-bar" style="width: {{ progress }}%"></div></div>
+                {% if current_step %}
+                <div class="compact-text">Ενεργός σταθμός</div>
+                <div class="fw-bold mb-2">{{ current_step.station_name }}</div>
+                <div class="compact-text">Ενέργεια</div>
+                <div class="fw-semibold mb-2">{{ current_step.action_title }}</div>
+                <div class="d-flex gap-2 align-items-center">
+                    <span class="badge {% if is_delayed %}badge-delayed{% else %}badge-soft{% endif %}">{{ step_age_days }} ημέρες</span>
+                    {% if is_delayed %}<span class="compact-text">όριο {{ delay_warning_days }}</span>{% endif %}
+                </div>
+                {% else %}
+                <div class="alert alert-success mb-0">Η ροή έχει ολοκληρωθεί.</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-8">
+        <div class="card">
+            <div class="card-header">Ροή ενεργειών</div>
+            <div class="card-body">
+                <div class="timeline">
+                    {% for step in case.steps %}
+                    {% set active = current_step and current_step.id == step.id %}
+                    <div class="timeline-step {% if step.status == 'completed' %}done{% endif %} {% if active %}active{% endif %}">
+                        <div class="timeline-index">{{ step.step_order }}</div>
+                        <div>
+                            <div class="d-flex flex-column flex-lg-row justify-content-between gap-2">
+                                <div>
+                                    <div class="fw-bold">{{ step.action_title }}</div>
+                                    <div class="compact-text">{{ step.station_name }}</div>
+                                </div>
+                                <div class="text-lg-end">
+                                    {% if step.status == 'completed' %}
+                                    <span class="badge badge-completed">Κλειδωμένο</span>
+                                    <div class="compact-text mt-1">{{ step.completed_at|datetime_el }} · {{ step.completed_by }}</div>
+                                    {% elif active %}
+                                    <span class="badge badge-open">Ενεργό</span>
+                                    {% else %}
+                                    <span class="badge badge-soft">Εκκρεμεί</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="mt-2">{{ step.action_description }}</div>
+
+                            {% if step.history_entries %}
+                            <div class="history-list mt-3">
+                                {% for entry in step.history_entries|sort(attribute='version_number') %}
+                                <div class="history-entry">
+                                    <div class="d-flex flex-column flex-lg-row justify-content-between gap-2">
+                                        <div>
+                                            <span class="badge badge-soft">v{{ entry.version_number }}</span>
+                                            <span class="badge {% if entry.event_type == 'completion' %}badge-completed{% else %}badge-open{% endif %}">
+                                                {% if entry.event_type == 'completion' %}Αρχική απάντηση{% else %}Update{% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="compact-text">{{ entry.created_at|datetime_el }} · {{ entry.created_by or '-' }}</div>
+                                    </div>
+                                    {% if entry.comment %}
+                                    <div class="mt-2">{{ entry.comment }}</div>
+                                    {% endif %}
+                                    {% if entry.files %}
+                                    <div class="d-flex flex-wrap gap-2 mt-2">
+                                        {% for file in entry.files %}
+                                        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('download_step_history_file', file_id=file.id) }}">{{ file.original_filename }}</a>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            {% if step.attachments %}
+                            <div class="mt-3">
+                                <div class="compact-text mb-2">Παλαιά συνημμένα βήματος</div>
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% for attachment in step.attachments %}
+                                    <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('download_attachment', attachment_id=attachment.id) }}">{{ attachment.original_filename }}</a>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if step.status != 'completed' and can_complete_step(step) %}
+                            <form class="mt-3" method="post" action="{{ url_for('complete_step', case_id=case.id, step_id=step.id) }}" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="row g-2">
+                                    <div class="col-lg-8">
+                                        <label class="form-label compact-text" for="comment-{{ step.id }}">Απάντηση ολοκλήρωσης</label>
+                                        <textarea class="form-control" id="comment-{{ step.id }}" name="comment" rows="3"></textarea>
+                                    </div>
+                                    <div class="col-lg-4">
+                                        <label class="form-label compact-text" for="files-{{ step.id }}">Αρχεία απάντησης</label>
+                                        <input class="form-control" id="files-{{ step.id }}" type="file" name="history_files" multiple>
+                                    </div>
+                                    <div class="col-12 d-flex justify-content-end">
+                                        <button class="btn btn-success" type="submit">Κλείδωμα και ολοκλήρωση</button>
+                                    </div>
+                                </div>
+                            </form>
+                            {% endif %}
+
+                            {% if step.status == 'completed' and can_update_step(step) %}
+                            <form class="mt-3" method="post" action="{{ url_for('add_step_update', case_id=case.id, step_id=step.id) }}" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="row g-2">
+                                    <div class="col-lg-8">
+                                        <label class="form-label compact-text" for="update-comment-{{ step.id }}">Νέο update</label>
+                                        <textarea class="form-control" id="update-comment-{{ step.id }}" name="comment" rows="2"></textarea>
+                                    </div>
+                                    <div class="col-lg-4">
+                                        <label class="form-label compact-text" for="update-files-{{ step.id }}">Νέα αρχεία</label>
+                                        <input class="form-control" id="update-files-{{ step.id }}" type="file" name="history_files" multiple>
+                                    </div>
+                                    <div class="col-12 d-flex justify-content-end">
+                                        <button class="btn btn-outline-primary" type="submit">Προσθήκη update</button>
+                                    </div>
+                                </div>
+                            </form>
+                            {% endif %}
+
+                            {% if is_admin_user() and step.status == 'completed' %}
+                            <form class="mt-3" method="post" action="{{ url_for('reopen_step', case_id=case.id, step_id=step.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-outline-warning btn-sm" type="submit">Άνοιγμα βήματος</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-4">
+        <div class="card mb-4">
+            <div class="card-header">Γενικά συνημμένα υπόθεσης</div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('upload_attachment', case_id=case.id) }}" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Αρχείο</label>
+                        <input class="form-control" type="file" name="attachment" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Περιγραφή</label>
+                        <input class="form-control" name="description">
+                    </div>
+                    <button class="btn btn-outline-primary w-100" type="submit">Ανέβασμα</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">Αρχεία υπόθεσης</div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% set general_attachments = case.attachments|selectattr("step_id", "none")|list %}
+                    {% for attachment in general_attachments %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between gap-2">
+                            <div>
+                                <a class="case-link" href="{{ url_for('download_attachment', attachment_id=attachment.id) }}">{{ attachment.original_filename }}</a>
+                                <div class="compact-text">
+                                    {{ attachment.uploaded_at|datetime_el }} · {{ attachment.uploaded_by or '-' }}
+                                </div>
+                                {% if attachment.description %}<div class="compact-text">{{ attachment.description }}</div>{% endif %}
+                            </div>
+                            {% if is_admin_user() and not attachment.step_id %}
+                            <form method="post" action="{{ url_for('delete_attachment', attachment_id=attachment.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-outline-danger btn-sm" type="submit">Διαγραφή</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="empty-state">Δεν υπάρχουν γενικά συνημμένα.</div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if is_admin_user() %}
+<div class="modal fade" id="cancelCaseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" action="{{ url_for('cancel_case', case_id=case.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">Ακύρωση υπόθεσης</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Κλείσιμο"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label fw-semibold">Αιτιολογία</label>
+                    <textarea class="form-control" name="cancellation_reason" rows="4"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Άκυρο</button>
+                    <button type="submit" class="btn btn-danger">Ακύρωση</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

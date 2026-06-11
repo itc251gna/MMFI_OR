@@ -1,0 +1,35 @@
+services:
+  mmfi-db:
+    image: postgres:15-alpine
+    container_name: mmfi-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ./runtime/postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+  mmfi-app:
+    build: .
+    container_name: mmfi-app
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@mmfi-db:5432/${POSTGRES_DB}
+      SESSION_COOKIE_SECURE: "1"
+      TRUST_SSO_HEADERS: "1"
+    expose:
+      - "5000"
+    volumes:
+      - ./static/uploads:/app/static/uploads
+      - ./runtime/backups:/app/runtime/backups
+    depends_on:
+      mmfi-db:
+        condition: service_healthy
+    restart: unless-stopped

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Υποθέσεις - MMFI{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3 mb-4">
+    <div>
+        <h1 class="page-title">Υποθέσεις</h1>
+        <p class="page-kicker">Λίστα χειρουργείων και τρέχουσα φάση τακτοποίησης.</p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('create_case') }}">Νέα υπόθεση</a>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form class="row g-3 align-items-end" method="get">
+            <div class="col-lg-3">
+                <label class="form-label fw-semibold">Αναζήτηση</label>
+                <input class="form-control" name="q" value="{{ request.args.get('q', '') }}" placeholder="Κωδικός, ιατρός, προμηθευτής">
+            </div>
+            <div class="col-sm-6 col-lg-2">
+                <label class="form-label fw-semibold">Κατάσταση</label>
+                <select class="form-select" name="status">
+                    <option value="">Όλες</option>
+                    {% for value, label in case_status_labels.items() %}
+                    <option value="{{ value }}" {% if request.args.get('status') == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-6 col-lg-3">
+                <label class="form-label fw-semibold">Τρέχων σταθμός</label>
+                <select class="form-select" name="station">
+                    <option value="">Όλοι</option>
+                    {% for station in workstations %}
+                    <option value="{{ station.code }}" {% if request.args.get('station') == station.code %}selected{% endif %}>{{ station.short }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm-6 col-lg-2">
+                <label class="form-label fw-semibold">Από</label>
+                <input class="form-control" name="date_from" type="date" value="{{ request.args.get('date_from', '') }}">
+            </div>
+            <div class="col-sm-6 col-lg-2">
+                <label class="form-label fw-semibold">Έως</label>
+                <input class="form-control" name="date_to" type="date" value="{{ request.args.get('date_to', '') }}">
+            </div>
+            <div class="col-12 d-flex gap-2">
+                <button class="btn btn-outline-primary" type="submit">Φίλτρο</button>
+                <a class="btn btn-outline-secondary" href="{{ url_for('cases') }}">Καθαρισμός</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>Κωδικός</th>
+                        <th>Χειρουργείο</th>
+                        <th>Τρέχον βήμα</th>
+                        <th>Πρόοδος</th>
+                        <th>Κατάσταση</th>
+                        <th class="text-end">Ενέργειες</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for case in cases %}
+                    {% set active = current_step_for_case(case) %}
+                    {% set pct = progress_for_case(case) %}
+                    <tr>
+                        <td>
+                            <a class="case-link" href="{{ url_for('case_detail', case_id=case.id) }}">{{ case.reference_code }}</a>
+                            <div class="compact-text">{{ case.surgery_date|date_el }}</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">{{ case.surgery_description }}</div>
+                            <div class="compact-text">{{ case.responsible_doctor }}{% if case.supplier %} · {{ case.supplier }}{% endif %}</div>
+                        </td>
+                        <td>
+                            {% if active %}
+                            <div class="fw-semibold">{{ active.action_title }}</div>
+                            <div class="compact-text">{{ active.station_name }} · {{ current_step_age_days(case) }} ημέρες</div>
+                            {% else %}
+                            <span class="compact-text">-</span>
+                            {% endif %}
+                        </td>
+                        <td style="min-width: 150px;">
+                            <div class="progress"><div class="progress-bar" style="width: {{ pct }}%"></div></div>
+                            <div class="compact-text mt-1">{{ pct }}%</div>
+                        </td>
+                        <td>
+                            <span class="badge {% if case.status == 'completed' %}badge-completed{% elif case.status == 'cancelled' %}badge-cancelled{% else %}badge-open{% endif %}">
+                                {{ case_status_labels.get(case.status, case.status) }}
+                            </span>
+                            {% if is_case_delayed(case) %}
+                            <span class="badge badge-delayed">Καθυστέρηση</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a class="btn btn-outline-primary btn-sm" href="{{ url_for('case_detail', case_id=case.id) }}">Άνοιγμα</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="empty-state">Δεν βρέθηκαν υποθέσεις.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Πίνακας - MMFI{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3 mb-4">
+    <div>
+        <h1 class="page-title">Πίνακας παρακολούθησης</h1>
+        <p class="page-kicker">Τρέχουσα εικόνα οικονομικής τακτοποίησης ανά χειρουργείο.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-primary" href="{{ url_for('create_case') }}">Νέα υπόθεση</a>
+        <a class="btn btn-outline-secondary" href="{{ url_for('reports') }}">Αναφορές</a>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card metric h-100">
+            <div class="card-body">
+                <div class="metric-label">Σύνολο</div>
+                <div class="metric-value">{{ all_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric metric-teal h-100">
+            <div class="card-body">
+                <div class="metric-label">Σε εξέλιξη</div>
+                <div class="metric-value">{{ open_cases|length }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric metric-green h-100">
+            <div class="card-body">
+                <div class="metric-label">Ολοκληρωμένα</div>
+                <div class="metric-value">{{ completed_count }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card metric metric-amber h-100">
+            <div class="card-body">
+                <div class="metric-label">Καθυστερούν</div>
+                <div class="metric-value">{{ delayed_cases|length }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-5">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Οι εκκρεμότητές μου</span>
+                <span class="badge badge-soft">{{ my_tasks|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Υπόθεση</th>
+                                <th>Στάδιο</th>
+                                <th class="text-end">Ημέρες</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for case in my_tasks %}
+                            {% set active = case.steps|selectattr('status', 'ne', 'completed')|first %}
+                            <tr>
+                                <td>
+                                    <a class="case-link" href="{{ url_for('case_detail', case_id=case.id) }}">{{ case.reference_code }}</a>
+                                    <div class="compact-text">{{ case.surgery_date|date_el }} · {{ case.responsible_doctor }}</div>
+                                </td>
+                                <td>
+                                    <div class="fw-semibold">{{ active.action_title }}</div>
+                                    <div class="compact-text">{{ active.station_name }}</div>
+                                </td>
+                                <td class="text-end">
+                                    {% set days = current_step_age_days(case) if current_step_age_days is defined else 0 %}
+                                    <span class="badge {% if days >= delay_warning_days %}badge-delayed{% else %}badge-soft{% endif %}">{{ days }}</span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="3" class="empty-state">Δεν υπάρχουν εκκρεμότητες για τους σταθμούς σας.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-7">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Πρόσφατες υποθέσεις</span>
+                <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('cases') }}">Όλες</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Κωδικός</th>
+                                <th>Χειρουργείο</th>
+                                <th>Τρέχων σταθμός</th>
+                                <th>Πρόοδος</th>
+                                <th>Κατάσταση</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for case in recent_cases %}
+                            {% set active = case.steps|selectattr('status', 'ne', 'completed')|first %}
+                            <tr>
+                                <td><a class="case-link" href="{{ url_for('case_detail', case_id=case.id) }}">{{ case.reference_code }}</a></td>
+                                <td>
+                                    <div class="fw-semibold text-truncate" style="max-width: 260px;">{{ case.surgery_description }}</div>
+                                    <div class="compact-text">{{ case.surgery_date|date_el }} · {{ case.responsible_doctor }}</div>
+                                </td>
+                                <td>
+                                    {% if active %}
+                                    <div class="fw-semibold">{{ active.station_name }}</div>
+                                    <div class="compact-text">Βήμα {{ active.step_order }}/13</div>
+                                    {% else %}
+                                    <span class="compact-text">-</span>
+                                    {% endif %}
+                                </td>
+                                <td style="min-width: 140px;">
+                                    {% set pct = progress_for_case(case) if progress_for_case is defined else 0 %}
+                                    <div class="progress"><div class="progress-bar" style="width: {{ pct }}%"></div></div>
+                                    <div class="compact-text mt-1">{{ pct }}%</div>
+                                </td>
+                                <td>
+                                    <span class="badge {% if case.status == 'completed' %}badge-completed{% elif case.status == 'cancelled' %}badge-cancelled{% else %}badge-open{% endif %}">
+                                        {{ case_status_labels.get(case.status, case.status) }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="empty-state">Δεν έχει δημιουργηθεί υπόθεση.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

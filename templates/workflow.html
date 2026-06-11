@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Ροή - MMFI{% endblock %}
+{% block content %}
+<div class="d-flex flex-column flex-lg-row align-items-lg-end justify-content-between gap-3 mb-4">
+    <div>
+        <h1 class="page-title">Ροή εργασίας</h1>
+        <p class="page-kicker">Προκαθορισμένοι σταθμοί οικονομικής τακτοποίησης.</p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('create_case') }}">Νέα υπόθεση</a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="timeline">
+            {% for item in workflow %}
+            <div class="timeline-step">
+                <div class="timeline-index">{{ item.order }}</div>
+                <div>
+                    <div class="d-flex flex-column flex-lg-row justify-content-between gap-2">
+                        <div>
+                            <div class="fw-bold">{{ item.title }}</div>
+                            <div class="compact-text">{{ station_label(item.station_code) }}</div>
+                        </div>
+                        <code>{{ station_group(item.station_code) }}</code>
+                    </div>
+                    <div class="mt-2">{{ item.description }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
