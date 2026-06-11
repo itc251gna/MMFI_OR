@@ -53,6 +53,8 @@ Production discipline follows the shared intranet pattern:
 - Keep production `.env`, runtime PostgreSQL data, backups and uploads outside Git.
 - Canonical production deployment folder: `/home/kmh251/deployment/mmfi`.
 - Canonical production URL through `app-gateway-nginx`: `https://mmfi.251gh.local/`.
+- Production SSO must trust the shared Docker gateway ranges in `SSO_TRUSTED_PROXY_CIDRS` (`127.0.0.1/32,172.16.0.0/12,192.168.0.0/16`) so Keycloak-authenticated requests do not fall back to the local MMFI login.
+- Normal users and app roles belong in Keycloak groups. MMFI local users are only fallback/recovery accounts.
 
 Create a local release tag:
 

@@ -231,7 +231,10 @@ login_manager.login_message_category = "warning"
 login_manager.session_protection = "basic"
 
 TRUST_SSO_HEADERS = bool_env("TRUST_SSO_HEADERS", "0")
-SSO_TRUSTED_PROXY_CIDRS = csv_env("SSO_TRUSTED_PROXY_CIDRS", "127.0.0.1/32,172.16.0.0/12")
+SSO_TRUSTED_PROXY_CIDRS = csv_env(
+    "SSO_TRUSTED_PROXY_CIDRS",
+    "127.0.0.1/32,172.16.0.0/12,192.168.0.0/16",
+)
 SSO_APP_USER_GROUP = os.getenv("SSO_APP_USER_GROUP", "/apps/mmfi/users")
 SSO_APP_ADMIN_GROUP = os.getenv("SSO_APP_ADMIN_GROUP", "/apps/mmfi/admins")
 SSO_GLOBAL_ADMIN_GROUP = os.getenv("SSO_GLOBAL_ADMIN_GROUP", "/apps/global/admins")
