@@ -68,6 +68,36 @@
                 </div>
             {% endif %}
         {% endwith %}
+        {% if current_user.is_authenticated %}
+            {% set pending_actions = pending_action_summary() %}
+            {% if pending_actions.count > 0 %}
+            <div class="pending-action-alert mb-3" role="alert" aria-live="polite">
+                <div class="pending-action-mark" aria-hidden="true">!</div>
+                <div class="pending-action-body">
+                    <div class="d-flex flex-column flex-lg-row justify-content-between gap-2">
+                        <div>
+                            <div class="pending-action-title">Υπάρχουν {{ pending_actions.count }} εκκρεμείς ενέργειες για το τμήμα σας.</div>
+                            <div class="pending-action-meta">
+                                {% for case in pending_actions.cases %}
+                                <a href="{{ url_for('case_detail', case_id=case.id) }}">{{ case.reference_code }}</a>{% if not loop.last %}, {% endif %}
+                                {% endfor %}
+                                {% if pending_actions.count > pending_actions.cases|length %}
+                                και {{ pending_actions.count - pending_actions.cases|length }} ακόμη
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="pending-action-actions">
+                            {% if pending_actions.station_codes|length == 1 %}
+                            <a class="btn btn-warning btn-sm" href="{{ url_for('cases', status='open', station=pending_actions.station_codes[0]) }}">Προβολή εκκρεμοτήτων</a>
+                            {% else %}
+                            <a class="btn btn-warning btn-sm" href="{{ url_for('cases', status='open') }}">Προβολή εκκρεμοτήτων</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        {% endif %}
         {% block content %}{% endblock %}
     </main>
 </div>

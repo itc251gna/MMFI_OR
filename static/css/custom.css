@@ -121,6 +121,63 @@ body {
   border-radius: 8px;
 }
 
+.pending-action-alert {
+  align-items: flex-start;
+  background: #fff8e7;
+  border: 1px solid #f2c66d;
+  border-radius: 8px;
+  color: #5f3b00;
+  display: flex;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.pending-action-mark {
+  align-items: center;
+  background: #b7791f;
+  border-radius: 50%;
+  color: #ffffff;
+  display: inline-flex;
+  flex: 0 0 28px;
+  font-weight: 700;
+  height: 28px;
+  justify-content: center;
+  line-height: 1;
+  width: 28px;
+}
+
+.pending-action-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pending-action-title {
+  color: #4d2f00;
+  font-weight: 700;
+}
+
+.pending-action-meta {
+  color: #805600;
+  font-size: 0.9rem;
+  margin-top: 3px;
+}
+
+.pending-action-meta a {
+  color: #784600;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pending-action-meta a:hover {
+  text-decoration: underline;
+}
+
+.pending-action-actions {
+  align-items: center;
+  display: flex;
+  flex: 0 0 auto;
+}
+
 .card {
   border: 1px solid var(--mmfi-line);
   box-shadow: 0 6px 18px rgba(23, 32, 51, 0.05);

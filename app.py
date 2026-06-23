@@ -677,6 +677,24 @@ def can_update_step(step):
     return step.station_code in allowed_station_codes()
 
 
+def pending_action_summary(limit=5):
+    summary = {"count": 0, "cases": [], "station_codes": []}
+    if not current_user.is_authenticated:
+        return summary
+    station_codes = sorted(allowed_station_codes())
+    if not station_codes:
+        return summary
+    summary["station_codes"] = station_codes
+    open_cases = SurgeryCase.query.filter_by(status="open").order_by(SurgeryCase.updated_at.desc()).all()
+    for case in open_cases:
+        active_step = current_step_for_case(case)
+        if active_step and active_step.station_code in station_codes:
+            summary["count"] += 1
+            if len(summary["cases"]) < limit:
+                summary["cases"].append(case)
+    return summary
+
+
 @app.context_processor
 def inject_template_globals():
     return {
@@ -694,6 +712,7 @@ def inject_template_globals():
         "current_step_age_days": current_step_age_days,
         "progress_for_case": progress_for_case,
         "is_case_delayed": is_case_delayed,
+        "pending_action_summary": pending_action_summary,
     }
 
 
